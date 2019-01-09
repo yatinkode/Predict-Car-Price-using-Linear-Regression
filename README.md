@@ -158,3 +158,4 @@ ggheatmap + geom_text(aes(Var2, Var1, label = value), color = "black", size = 3)
   guides(fill = guide_colorbar(barwidth = 8, barheight = 1,title.position = "top", title.hjust = 0.5))+
   ggtitle("Correlation plot of continuous variables in Car Prices dataset")
 ```
+[![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/corrplot.png)]
