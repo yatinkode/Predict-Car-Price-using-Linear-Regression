@@ -158,7 +158,7 @@ ggheatmap + geom_text(aes(Var2, Var1, label = value), color = "black", size = 3)
   guides(fill = guide_colorbar(barwidth = 8, barheight = 1,title.position = "top", title.hjust = 0.5))+
   ggtitle("Correlation plot of continuous variables in Car Prices dataset")
 ```
-[![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/corrplot.png)]
+![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/corrplot.png)
 
 #### Creating derived variable
 ```R
@@ -622,7 +622,7 @@ ggplot(test, aes(price, error)) + geom_point()+labs(title = "White noise or erro
   theme(panel.background = element_blank(),axis.line = element_line(colour = "black"))
 #As seen in the plot the error is randomly distributed
 ```
-[![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/noise.png)]
+![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/noise.png)
 
 ```R
 #Plotting line graph of Actual vs Predicted Price
@@ -632,4 +632,4 @@ ggplot()+geom_line(data=test,aes(y=price,x= seq_len(length(test_price)),color="r
   theme(axis.line = element_line(colour = "black"))+
   scale_color_discrete(name = "Price", labels = c("Actual Price", "Predicted Price"))
 ```
-[![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/actualpred.png)]
+![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/actualpred.png)
