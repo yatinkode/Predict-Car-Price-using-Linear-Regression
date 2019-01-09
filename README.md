@@ -159,3 +159,477 @@ ggheatmap + geom_text(aes(Var2, Var1, label = value), color = "black", size = 3)
   ggtitle("Correlation plot of continuous variables in Car Prices dataset")
 ```
 [![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/corrplot.png)]
+
+#### Creating derived variable
+```R
+# From correlation plot we get to know, there is higher positive correlation between 
+
+#1. citympg and highwaympg are almost nearer to each other so we take mean on citympg and highwaympg and create variable mpg
+carprice$mpg<-as.numeric(apply(carprice[,24:25],1,mean))
+carprice<-within(carprice,rm(citympg,highwaympg))
+
+
+#2. carlength and curbweight (0.88). So we can create a single variable as a ratio (carweight/Carlength)
+carprice$wtbylen<-as.numeric(carprice$curbweight/carprice$carlength)
+
+#Also we need to remove curbweight and carlength variables
+carprice<-within(carprice,rm(carlength,curbweight))
+```
+#### Creating dummy variables
+```R
+dummy_symboling<- data.frame(model.matrix( ~symboling, data = carprice))                   #create dummy variables for car symboling
+dummy_symboling <- dummy_symboling[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice, rm(symboling)), dummy_symboling)                                        #attach dummy variables with main data frame
+
+dummy_company <- data.frame(model.matrix( ~company, data = carprice))                   #create dummy variables for car companies
+dummy_company <- dummy_company[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice1, rm(company)), dummy_company)                                        #attach dummy variables with main data frame
+
+levels(carprice1$fueltype)<-c(0,1)                                                      #converting 1 for gas and 0 for diesel in fueltype
+carprice1$fueltypegas<- as.numeric(levels(carprice1$fueltype))[carprice1$fueltype]      #convert levels to number and store it in a column fueltypegas
+carprice1<-within(carprice1, rm(fueltype))                                              #remove fueltype column
+
+levels(carprice1$aspiration)<-c(0,1)                                                            #converting 1 for turbo and 0 for std in aspiration
+carprice1$aspirationturbo<- as.numeric(levels(carprice1$aspiration))[carprice1$aspiration]      #convert levels to number and store it in a column aspirationturbo
+carprice1<-within(carprice1, rm(aspiration))                                                    #remove aspiration column
+
+levels(carprice1$doornumber)<-c(0,1)                                                            #converting 1 for two and 0 for four in doornumber
+carprice1$doornumbertwo<- as.numeric(levels(carprice1$doornumber))[carprice1$doornumber]        #convert levels to number and store it in a column doornumbertwo
+carprice1<-within(carprice1, rm(doornumber))                                                    #remove doornumber column
+
+dummy_carbody <- data.frame(model.matrix( ~carbody, data = carprice))                   #create dummy variables for car bodies
+dummy_carbody <- dummy_carbody[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice1, rm(carbody)), dummy_carbody)                                       #attach dummy variables with main data frame
+
+dummy_drivewheel <- data.frame(model.matrix( ~drivewheel, data = carprice))                   #create dummy variables for car bodies
+dummy_drivewheel <- dummy_drivewheel[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice1, rm(drivewheel)), dummy_drivewheel)                                          #attach dummy variables with main data frame
+
+levels(carprice1$enginelocation)<-c(1,0)                                                             #converting 1 for front and 0 for rear in enginelocation
+carprice1$enginefront<- as.numeric(levels(carprice1$enginelocation))[carprice1$enginelocation]        #convert levels to number and store it in a column enginelocationfront
+carprice1<-within(carprice1, rm(enginelocation))                                                     #remove enginelocation column
+
+dummy_enginetype <- data.frame(model.matrix( ~enginetype, data = carprice))                   #create dummy variables for car bodies
+dummy_enginetype <- dummy_enginetype[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice1, rm(enginetype)), dummy_enginetype)                                          #attach dummy variables with main data frame
+
+dummy_cylindernumber <- data.frame(model.matrix( ~cylindernumber, data = carprice))                   #create dummy variables for cylindernumber
+dummy_cylindernumber <- dummy_cylindernumber[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice1, rm(cylindernumber)) , dummy_cylindernumber)                      #attach dummy variables with main data frame
+
+dummy_fuelsystem <- data.frame(model.matrix( ~fuelsystem, data = carprice))                   #create dummy variables for cylindernumber
+dummy_fuelsystem <- dummy_fuelsystem[,-1]                                                     #remove x -intercept column from dummy variables
+carprice1 <- cbind(within(carprice1, rm(fuelsystem)) , dummy_fuelsystem)                      #attach dummy variables with main data frame
+
+#Since car_Id is of no use in regression we can remove it
+carprice1<-within(carprice1, rm(car_ID))
+```
+
+### Split data into train and test
+```R
+set.seed(100)
+trainindices= sample(1:nrow(carprice1), 0.7*nrow(carprice1))
+
+train = carprice1[trainindices,]
+test = carprice1[-trainindices,]
+```
+
+### Modelling
+```R
+#Backward selection process. make model with all independent variables
+model_1<-lm(price~.,data=train)
+summary(model_1)
+#Multiple R-squared:  0.981,	Adjusted R-squared:  0.9686 
+
+#StepAIC method to get relevant variables
+step<-stepAIC(model_1, direction = "both")
+
+step
+
+#Created model from StepAIC recommendation
+model_2<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              wtbylen + symboling3 + companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodysedan + carbodywagon + drivewheelrwd + enginefront + 
+              enginetypeohc + enginetypeohcv + enginetyperotor + cylindernumberfive + symboling1, data = train)
+
+
+summary(model_2)
+#Multiple R-squared:  0.9794,	Adjusted R-squared:  0.9729 
+
+vif(model_2)
+# Since vif of carbodysedan is 17.796421 which is the highest and pvalue  is 0.017510 which is very insignificant, so we drop carbodysedan
+
+model_3<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              wtbylen + symboling3 + companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + 
+              enginetypeohc + enginetypeohcv + enginetyperotor + cylindernumberfive + symboling1, data = train)
+
+summary(model_3)
+#Multiple R-squared:  0.9783,	Adjusted R-squared:  0.9717 
+#The adjusted rsquared is not changed much, so the model looks good till now
+
+vif(model_3)
+#wtbylen has pvalue 0.003235  and very high VIF of 10.971204 , so we will try removing it in the next model
+
+model_4<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              symboling3 + companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + 
+              enginetypeohc + enginetypeohcv + enginetyperotor + cylindernumberfive + symboling1, data = train)
+
+summary(model_4)
+#Multiple R-squared:  0.9765,	Adjusted R-squared:  0.9696
+
+vif(model_4)
+#removing enginetypeohc with pvalue 0.012796 and vif of 5.652061 
+
+model_5<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              symboling3 + companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + 
+              enginetypeohcv + enginetyperotor + cylindernumberfive + symboling1, data = train)
+
+summary(model_5)
+#Multiple R-squared:  0.9751,	Adjusted R-squared:  0.9682 
+
+vif(model_5)
+#removing enginetypeohcv   with  p-value 0.624891 and vif 2.668468    
+
+model_6<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              symboling3 + companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + enginetyperotor + cylindernumberfive + 
+              symboling1, data = train)
+
+summary(model_6)
+#Multiple R-squared:  0.9751,	Adjusted R-squared:  0.9684
+
+#symboling3   pvalue is 0.477570 and vif is 2.406865 
+
+vif(model_6)
+#remove symboling3
+
+model_7<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + enginetyperotor + cylindernumberfive + 
+              symboling1, data = train)
+
+summary(model_7)
+#Multiple R-squared:  0.9749,	Adjusted R-squared:  0.9685 
+
+vif(model_7)
+#remove cylindernumberfive  of p-value 0.049170 and vif of 2.182294
+
+model_8<-lm(formula = price ~ carwidth + enginesize + stroke + peakrpm + 
+              companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + enginetyperotor + symboling1, data = train)
+
+summary(model_8)
+#Multiple R-squared:  0.9741,	Adjusted R-squared:  0.9677  
+
+vif(model_8)
+#remove peakrpm  p-value is 0.001360 and vif 2.674326
+
+model_9<-lm(formula = price ~ carwidth + enginesize + stroke + 
+              companybmw + companybuick + companydodge + 
+              companyhonda + companyjaguar + companymazda + companymercury + 
+              companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+              companyrenault + companysaab + companysubaru + companytoyota + 
+              companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+              carbodywagon + drivewheelrwd + enginefront + enginetyperotor + symboling1, data = train)
+
+summary(model_9)
+#Multiple R-squared:  0.9716,	Adjusted R-squared:  0.965 
+
+vif(model_9)
+#remove drivewheelrwd p-value 0.006832 and vif 3.685328 
+
+model_10<-lm(formula = price ~ carwidth + enginesize + stroke + 
+               companybmw + companybuick + companydodge + 
+               companyhonda + companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysaab + companysubaru + companytoyota + 
+               companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+               carbodywagon + enginefront + enginetyperotor + symboling1, data = train)
+
+summary(model_10)
+#Multiple R-squared:  0.9697,	Adjusted R-squared:  0.963  
+
+vif(model_10)
+#remove companyhonda  of    p-value 0.083597 and  vif 2.405263
+
+model_11<-lm(formula = price ~ carwidth + enginesize + stroke + 
+               companybmw + companybuick + companydodge + 
+               companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysaab + companysubaru + companytoyota + 
+               companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+               carbodywagon + enginefront + enginetyperotor + symboling1, data = train)
+
+summary(model_11)
+#Multiple R-squared:  0.9689,	Adjusted R-squared:  0.9623
+
+vif(model_11)
+#remove symboling1  having  p-value   0.077507 and vif 1.57129
+
+model_12<-lm(formula = price ~ carwidth + enginesize + stroke + 
+               companybmw + companybuick + companydodge + 
+               companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysaab + companysubaru + companytoyota + 
+               companyvolkswagen + aspirationturbo + carbodyhardtop + carbodyhatchback + 
+               carbodywagon + enginefront + enginetyperotor, data = train)
+
+summary(model_12)
+#Multiple R-squared:  0.9681,	Adjusted R-squared:  0.9616 
+
+vif(model_12)
+#remove    carbodyhatchback  p-value  0.219238 vif 1.5358
+
+
+model_13<-lm(formula = price ~ carwidth + enginesize + stroke + 
+               companybmw + companybuick + companydodge + 
+               companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysaab + companysubaru + companytoyota + 
+               companyvolkswagen + aspirationturbo + carbodyhardtop +
+               carbodywagon + enginefront + enginetyperotor, data = train)
+
+summary(model_13)
+#Multiple R-squared:  0.9677,	Adjusted R-squared:  0.9615 
+
+vif(model_13)
+# remove   carbodyhardtop  p-value  0.238045   vif 1.390827
+
+
+model_14<-lm(formula = price ~ carwidth + enginesize + stroke + 
+               companybmw + companybuick + companydodge + companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysaab + companysubaru + companytoyota + 
+               companyvolkswagen + aspirationturbo +carbodywagon + enginefront +enginetyperotor,data =train)
+
+summary(model_14)
+#Multiple R-squared:  0.9716,	Adjusted R-squared:  0.9665  
+
+vif(model_14)
+# remove   companysaab having p-value  0.580496 and vif 1.351276
+
+model_15<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + 
+               companydodge + companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysubaru + companytoyota + companyvolkswagen + aspirationturbo +
+               carbodywagon + enginefront + enginetyperotor, data = train)
+
+summary(model_15)
+#Multiple R-squared:  0.9672,	Adjusted R-squared:  0.9615
+
+vif(model_15)
+#  remove  companyvolkswagen  p-value  0.026306 vif 1.261448
+
+model_16<-lm(formula = price ~ carwidth + enginesize + stroke + 
+               companybmw + companybuick + companydodge + companyjaguar + companymazda + companymercury + 
+               companymitsubishi + companynissan + companypeugeot + companyplymouth + 
+               companyrenault + companysubaru + companytoyota + aspirationturbo +
+               carbodywagon + enginefront + enginetyperotor, data = train)
+
+summary(model_16)
+#Multiple R-squared:  0.9659,	Adjusted R-squared:  0.9603   
+
+vif(model_16)
+# remove companyrenault    p-value  0.062271 vif 1.190991
+
+model_17<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + companydodge + 
+               companyjaguar + companymazda + companymercury + companymitsubishi + companynissan + 
+               companypeugeot + companyplymouth + companysubaru + companytoyota + aspirationturbo +
+               carbodywagon + enginefront + enginetyperotor, data = train)
+
+summary(model_17)
+#Multiple R-squared:  0.9649,	Adjusted R-squared:  0.9594 
+
+vif(model_17)
+#Most insignificant p-value foung is of companynissan , p-value is 0.002006 vif 1.269498
+
+model_18<-lm(formula = price ~ carwidth + enginesize + stroke +companybmw + companybuick + 
+               companydodge + companyjaguar + companymazda + companymercury + companymitsubishi + 
+               companypeugeot +companyplymouth + companysubaru + companytoyota + 
+               aspirationturbo +carbodywagon + enginefront + enginetyperotor, data = train)
+
+summary(model_18)
+#Multiple R-squared:  0.962,	Adjusted R-squared:  0.9565  
+
+vif(model_18)
+# remove carbodywagon  having  p-value  0.910410  and  vif 1.148776
+
+
+model_19<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + companydodge + 
+               companyjaguar + companymazda + companymercury + companymitsubishi + companypeugeot + companyplymouth + 
+               companysubaru + companytoyota + aspirationturbo +enginefront + enginetyperotor, data = train)
+
+summary(model_19)
+#Multiple R-squared:  0.962,	Adjusted R-squared:  0.9569
+
+vif(model_19)
+# remove companyplymouth  having  p-value  0.025098 and vif 1.120359
+
+model_20<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + companydodge + companyjaguar+
+               companymazda + companymercury + companymitsubishi + companypeugeot + companysubaru + companytoyota + 
+               aspirationturbo +enginefront + enginetyperotor, data = train)
+
+summary(model_20)
+#Multiple R-squared:  0.9605,	Adjusted R-squared:  0.9554
+
+vif(model_20)
+# remove  companymazda  having p-value 0.001529 and vif 1.44038
+
+model_21<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + companydodge + 
+               companyjaguar + companymercury + companymitsubishi + companypeugeot + companysubaru + companytoyota + 
+               aspirationturbo +enginefront + enginetyperotor, data = train)
+
+summary(model_21)
+#Multiple R-squared:  0.9572,	Adjusted R-squared:  0.9521   
+
+vif(model_21)
+# remove  companypeugeot having  p-value 0.00124 and vif 1.213973 
+
+model_22<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + companydodge + 
+               companyjaguar + companymercury + companymitsubishi +companysubaru + companytoyota + 
+               aspirationturbo +enginefront + enginetyperotor, data = train)
+
+summary(model_22)
+#Multiple R-squared:  0.9535,	Adjusted R-squared:  0.9484  
+
+vif(model_22)
+# remove  companytoyota having  p-value 0.004403 and vif 1.180727 
+
+model_23<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick + companydodge + 
+               companyjaguar + companymercury + companymitsubishi +companysubaru + aspirationturbo +
+               enginefront + enginetyperotor, data = train)
+
+summary(model_23)
+#Multiple R-squared:  0.9575,	Adjusted R-squared:  0.9532  
+
+vif(model_23)
+# remove  companydodge and   p-value 0.254 and vif 1.080967 
+
+model_24<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick +companyjaguar + companymercury + 
+               companymitsubishi +companysubaru + aspirationturbo +enginefront + enginetyperotor, data = train)
+
+summary(model_24)
+#Multiple R-squared:  0.9553,	Adjusted R-squared:  0.9511 
+
+vif(model_24)
+# remove  companymitsubishi having  p-value 0.0264 and vif 1.0571
+
+
+model_25<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick +companyjaguar + companymercury + 
+               companysubaru + aspirationturbo +enginefront + enginetyperotor, data = train)
+
+
+summary(model_25)
+#Multiple R-squared:  0.9527,	Adjusted R-squared:  0.9487 
+
+vif(model_25)
+#Remove companymercury having p-value 0.382 and vif 1.052109
+
+model_26<-lm(formula = price ~ carwidth + enginesize + stroke + companybmw + companybuick +companyjaguar +
+               companysubaru + aspirationturbo +enginefront + enginetyperotor, data = train)
+
+summary(model_26)
+#Multiple R-squared:  0.9477,	Adjusted R-squared:  0.9437 
+
+vif(model_26)
+#All variables are in 3 star. So we have got the nearly perfect model
+
+###################################################################Final Model ##############################################################
+
+#Call:
+#lm(formula = price ~ carwidth + enginesize + stroke + companybmw + 
+#    companybuick + companyjaguar + companysubaru + aspirationturbo + 
+#    enginefront + enginetyperotor, data = train)
+#
+#Residuals:
+#    Min      1Q  Median      3Q     Max 
+#-4058.9 -1218.9  -394.2   942.5  4850.9 
+#
+#Coefficients:
+#                 Estimate Std. Error t value Pr(>|t|)    
+#(Intercept)     -37298.78    8595.60  -4.339 2.82e-05 ***
+#carwidth          1017.62     142.11   7.161 5.04e-11 ***
+#enginesize          98.33       8.91  11.035  < 2e-16 ***
+#stroke           -4618.45     688.83  -6.705 5.35e-10 ***
+#companybmw        8073.50    1176.13   6.864 2.36e-10 ***
+#companybuick      6528.61     995.12   6.561 1.11e-09 ***
+#companyjaguar     9403.51    1706.89   5.509 1.82e-07 ***
+#companysubaru    -4234.38     945.49  -4.479 1.61e-05 ***
+#aspirationturbo   2039.60     465.34   4.383 2.37e-05 ***
+#enginefront     -15139.97    1396.28 -10.843  < 2e-16 ***
+#enginetyperotor   5876.60    1224.88   4.798 4.27e-06 ***
+#---
+#Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#
+#Residual standard error: 1938 on 132 degrees of freedom
+#Multiple R-squared:  0.9477,	Adjusted R-squared:  0.9437 
+#F-statistic: 239.1 on 10 and 132 DF,  p-value: < 2.2e-16
+```
+### Model Validation
+```R
+#get the price by applying model_26
+Predict_1<-predict(model_26,within(test, rm(price)))
+
+#Create a new column in test data with predicted price values
+test$test_price <- Predict_1
+
+# Now, we need to test the r square between actual and predicted sales. 
+r <- cor(test$price,test$test_price)
+rsquared <- cor(test$price,test$test_price)^2
+rsquared
+#0.8364287
+#Our model works 83.64~ 84% on the test data correctly
+
+
+
+#Get difference between actual price and predicted price
+test$error <-  test$price - test$test_price
+
+
+#Plotting white noise (Difference between actual and predicted price)
+ggplot(test, aes(price, error)) + geom_point()+labs(title = "White noise or error")+
+  theme(panel.background = element_blank(),axis.line = element_line(colour = "black"))
+#As seen in the plot the error is randomly distributed
+```
+[![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/noise.png)]
+
+```R
+#Plotting line graph of Actual vs Predicted Price
+ggplot()+geom_line(data=test,aes(y=price,x= seq_len(length(test_price)),color="red"),size=1)+
+  geom_line(data=test,aes(y=test_price,x= seq_len(length(test_price)),color="blue"),size=1)+
+  labs(x = " ", y = "Price", title = "Predicted Price vs Actual Price")+
+  theme(axis.line = element_line(colour = "black"))+
+  scale_color_discrete(name = "Price", labels = c("Actual Price", "Predicted Price"))
+```
+[![data](https://github.com/yatinkode/Predict-Car-Price-using-Linear-Regression/blob/main/images/actualpred.png)]
